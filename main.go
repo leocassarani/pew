@@ -11,9 +11,17 @@ func main() {
 	cmd := exec.Command(command[0], command[1:]...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	err := cmd.Run()
+	err := cmd.Start()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "pew: %v\n", err)
-		os.Exit(1)
+		exit(err)
 	}
+	err = cmd.Wait()
+	if err != nil {
+		exit(err)
+	}
+}
+
+func exit(err error) {
+	fmt.Fprintf(os.Stderr, "pew: %v\n", err)
+	os.Exit(1)
 }
