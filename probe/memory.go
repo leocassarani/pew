@@ -6,14 +6,20 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const RssIndex = 23
 
 type Memory struct {
-	Readings []int
+	Readings []MemoryReading
 	stat     *os.File
 	pagesize int
+}
+
+type MemoryReading struct {
+	time time.Time
+	rss  int
 }
 
 func NewMemory(process *os.Process) (*Memory, error) {
@@ -48,7 +54,12 @@ func (m *Memory) Probe() error {
 		return err
 	}
 
-	m.Readings = append(m.Readings, rss*m.pagesize)
+	reading := MemoryReading{
+		time: time.Now(),
+		rss:  rss * m.pagesize,
+	}
+	m.Readings = append(m.Readings, reading)
+
 	return nil
 }
 
