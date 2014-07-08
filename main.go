@@ -19,29 +19,31 @@ func main() {
 		exit(err)
 	}
 
-	go poll(cmd.Process)
-
-	err = cmd.Wait()
-	if err != nil {
-		exit(err)
-	}
-}
-
-func poll(process *os.Process) {
-	mem, err := probe.NewMemory(process)
+	mem, err := probe.NewMemory(cmd.Process)
 	if err != nil {
 		exit(err)
 	}
 	defer mem.Close()
 
-	for {
-		err = mem.Probe()
-		if err != nil {
-			exit(err)
-		}
+	go mem.Probe(1 * time.Second)
 
-		// Poll at 1-second intervals.
-		<-time.After(1 * time.Second)
+	err = cmd.Wait()
+	if err != nil {
+		exit(err)
+	}
+
+	if err = os.MkdirAll(".pew", os.ModePerm); err != nil {
+		exit(err)
+	}
+
+	csv, err := os.Create(".pew/memory.csv")
+	if err != nil {
+		exit(err)
+	}
+
+	err = mem.WriteTo(csv)
+	if err != nil {
+		exit(err)
 	}
 }
 

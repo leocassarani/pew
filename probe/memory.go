@@ -1,6 +1,9 @@
 package probe
 
 import (
+	"encoding/csv"
+	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path"
@@ -18,8 +21,8 @@ type Memory struct {
 }
 
 type MemoryReading struct {
-	time time.Time
-	rss  int
+	Time time.Time
+	RSS  int
 }
 
 func NewMemory(process *os.Process) (*Memory, error) {
@@ -37,7 +40,17 @@ func NewMemory(process *os.Process) (*Memory, error) {
 	}, nil
 }
 
-func (m *Memory) Probe() error {
+func (m *Memory) Probe(d time.Duration) {
+	for {
+		err := m.takeReading()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "pew: %v\n", err)
+		}
+		<-time.After(d)
+	}
+}
+
+func (m *Memory) takeReading() error {
 	_, err := m.stat.Seek(0, 0)
 	if err != nil {
 		return err
@@ -55,8 +68,8 @@ func (m *Memory) Probe() error {
 	}
 
 	reading := MemoryReading{
-		time: time.Now(),
-		rss:  rss * m.pagesize,
+		Time: time.Now(),
+		RSS:  rss * m.pagesize,
 	}
 	m.Readings = append(m.Readings, reading)
 
@@ -65,4 +78,24 @@ func (m *Memory) Probe() error {
 
 func (m *Memory) Close() {
 	m.stat.Close()
+}
+
+func (m *Memory) WriteTo(w io.Writer) error {
+	out := csv.NewWriter(w)
+	for _, reading := range m.Readings {
+		out.Write(reading.CSVRow())
+	}
+
+	out.Flush()
+	if err := out.Error(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r MemoryReading) CSVRow() []string {
+	timestamp := fmt.Sprintf("%v", r.Time.Unix())
+	rss := strconv.Itoa(r.RSS)
+	return []string{timestamp, rss}
 }
