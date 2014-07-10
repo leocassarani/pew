@@ -22,18 +22,17 @@ func main() {
 		exit(err)
 	}
 
-	mem, err := probe.NewMemory(runner.Process())
+	probe, err := probe.New(runner.Process())
 	if err != nil {
 		exit(err)
 	}
-	defer mem.Close()
-
-	go mem.Probe(1 * time.Second)
+	go probe.Start(1 * time.Second)
+	defer probe.Close()
 
 	select {
 	case err = <-runner.Exit:
 		if err == nil {
-			mem.Stop()
+			probe.Stop()
 		} else {
 			exit(err)
 		}
@@ -54,7 +53,7 @@ func main() {
 		exit(err)
 	}
 
-	err = mem.WriteTo(csv)
+	err = probe.Memory.WriteTo(csv)
 	if err != nil {
 		exit(err)
 	}

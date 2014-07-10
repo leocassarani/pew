@@ -4,97 +4,25 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"os"
-	"path"
 	"strconv"
-	"strings"
 	"time"
 )
 
-const RssIndex = 23
-
-type Memory struct {
-	Readings []MemoryReading
-	stat     *os.File
-	stop     chan struct{}
-	pagesize int
+type MemoryUsage struct {
+	readings []MemoryReading
 }
 
-type MemoryReading struct {
-	Time time.Time
-	RSS  int
-}
-
-func NewMemory(process *os.Process) (*Memory, error) {
-	pid := strconv.Itoa(process.Pid)
-	filepath := path.Join("/proc", pid, "stat")
-
-	stat, err := os.Open(filepath)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Memory{
-		stat:     stat,
-		stop:     make(chan struct{}, 1),
-		pagesize: os.Getpagesize(),
-	}, nil
-}
-
-func (m *Memory) Probe(d time.Duration) {
-	ticker := time.NewTicker(d)
-	for {
-		select {
-		case <-ticker.C:
-			err := m.takeReading()
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "pew: %v\n", err)
-			}
-		case <-m.stop:
-			ticker.Stop()
-			break
-		}
-	}
-}
-
-func (m *Memory) takeReading() error {
-	_, err := m.stat.Seek(0, 0)
-	if err != nil {
-		return err
-	}
-
-	text, err := ioutil.ReadAll(m.stat)
-	if err != nil {
-		return err
-	}
-
-	stats := strings.Split(string(text), " ")
-	rss, err := strconv.Atoi(stats[RssIndex])
-	if err != nil {
-		return err
-	}
-
+func (m *MemoryUsage) Record(stat ProcessStatus) {
 	reading := MemoryReading{
 		Time: time.Now(),
-		RSS:  rss * m.pagesize,
+		RSS:  stat.RSS,
 	}
-	m.Readings = append(m.Readings, reading)
-
-	return nil
+	m.readings = append(m.readings, reading)
 }
 
-func (m *Memory) Stop() {
-	m.stop <- struct{}{}
-}
-
-func (m *Memory) Close() {
-	m.stat.Close()
-}
-
-func (m *Memory) WriteTo(w io.Writer) error {
+func (m *MemoryUsage) WriteTo(w io.Writer) error {
 	out := csv.NewWriter(w)
-	for _, reading := range m.Readings {
+	for _, reading := range m.readings {
 		out.Write(reading.CSVRow())
 	}
 
@@ -104,6 +32,11 @@ func (m *Memory) WriteTo(w io.Writer) error {
 	}
 
 	return nil
+}
+
+type MemoryReading struct {
+	Time time.Time
+	RSS  int
 }
 
 func (r MemoryReading) CSVRow() []string {
