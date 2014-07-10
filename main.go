@@ -31,7 +31,7 @@ func main() {
 	go mem.Probe(1 * time.Second)
 
 	select {
-	case err = <-runner.Errors:
+	case err = <-runner.Exit:
 		if err == nil {
 			mem.Stop()
 		} else {

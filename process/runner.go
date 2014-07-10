@@ -6,17 +6,17 @@ import (
 )
 
 type Runner struct {
-	Errors chan error
-	name   string
-	args   []string
-	cmd    *exec.Cmd
+	Exit chan error
+	name string
+	args []string
+	cmd  *exec.Cmd
 }
 
 func NewRunner(command []string) *Runner {
 	return &Runner{
-		Errors: make(chan error, 1),
-		name:   command[0],
-		args:   command[1:],
+		Exit: make(chan error, 1),
+		name: command[0],
+		args: command[1:],
 	}
 }
 
@@ -37,7 +37,7 @@ func (r *Runner) Run() error {
 
 func (r *Runner) wait() {
 	err := r.cmd.Wait()
-	r.Errors <-err
+	r.Exit <- err
 }
 
 func (r *Runner) Process() *os.Process {
