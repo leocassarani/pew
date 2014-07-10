@@ -43,3 +43,8 @@ func (r *Runner) wait() {
 func (r *Runner) Process() *os.Process {
 	return r.cmd.Process
 }
+
+// Stop sends a SIGINT signal to the child process.
+func (r *Runner) Stop() error {
+	return r.Process().Signal(os.Interrupt)
+}

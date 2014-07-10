@@ -5,10 +5,15 @@ import (
 	"github.com/leocassarani/pew/probe"
 	"github.com/leocassarani/pew/process"
 	"os"
+	"os/signal"
 	"time"
 )
 
 func main() {
+	// Catch SIGINT signals on the interrupt channel.
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, os.Interrupt)
+
 	command := os.Args[1:]
 
 	runner := process.NewRunner(command)
@@ -30,6 +35,12 @@ func main() {
 		if err == nil {
 			mem.Stop()
 		} else {
+			exit(err)
+		}
+	case <-interrupt:
+		// Handle a Ctrl-C by shutting down the child process.
+		err = runner.Stop()
+		if err != nil {
 			exit(err)
 		}
 	}
