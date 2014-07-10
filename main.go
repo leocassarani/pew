@@ -3,23 +3,21 @@ package main
 import (
 	"fmt"
 	"github.com/leocassarani/pew/probe"
+	"github.com/leocassarani/pew/process"
 	"os"
-	"os/exec"
 	"time"
 )
 
 func main() {
 	command := os.Args[1:]
-	cmd := exec.Command(command[0], command[1:]...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
 
-	err := cmd.Start()
+	runner := process.NewRunner(command)
+	err := runner.Run()
 	if err != nil {
 		exit(err)
 	}
 
-	mem, err := probe.NewMemory(cmd.Process)
+	mem, err := probe.NewMemory(runner.Process())
 	if err != nil {
 		exit(err)
 	}
@@ -27,9 +25,13 @@ func main() {
 
 	go mem.Probe(1 * time.Second)
 
-	err = cmd.Wait()
-	if err != nil {
-		exit(err)
+	select {
+	case err = <-runner.Errors:
+		if err == nil {
+			mem.Stop()
+		} else {
+			exit(err)
+		}
 	}
 
 	if err = os.MkdirAll(".pew", os.ModePerm); err != nil {

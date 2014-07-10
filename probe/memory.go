@@ -17,6 +17,7 @@ const RssIndex = 23
 type Memory struct {
 	Readings []MemoryReading
 	stat     *os.File
+	stop     chan struct{}
 	pagesize int
 }
 
@@ -36,17 +37,24 @@ func NewMemory(process *os.Process) (*Memory, error) {
 
 	return &Memory{
 		stat:     stat,
+		stop:     make(chan struct{}, 1),
 		pagesize: os.Getpagesize(),
 	}, nil
 }
 
 func (m *Memory) Probe(d time.Duration) {
+	ticker := time.NewTicker(d)
 	for {
-		err := m.takeReading()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "pew: %v\n", err)
+		select {
+		case <-ticker.C:
+			err := m.takeReading()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "pew: %v\n", err)
+			}
+		case <-m.stop:
+			ticker.Stop()
+			break
 		}
-		<-time.After(d)
 	}
 }
 
@@ -74,6 +82,10 @@ func (m *Memory) takeReading() error {
 	m.Readings = append(m.Readings, reading)
 
 	return nil
+}
+
+func (m *Memory) Stop() {
+	m.stop <- struct{}{}
 }
 
 func (m *Memory) Close() {
