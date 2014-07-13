@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/leocassarani/pew/probe"
 	"github.com/leocassarani/pew/process"
+	"github.com/leocassarani/pew/profile"
 	"os"
 	"os/signal"
 	"time"
@@ -22,17 +22,18 @@ func main() {
 		exit(err)
 	}
 
-	probe, err := probe.New(runner.Process())
+	usage := &profile.Usage{}
+	mem, err := process.NewMemoryProbe(runner, usage)
 	if err != nil {
 		exit(err)
 	}
-	go probe.Start(1 * time.Second)
-	defer probe.Close()
+	go mem.SampleEvery(1 * time.Second)
+	defer mem.Close()
 
 	select {
 	case err = <-runner.Exit:
 		if err == nil {
-			probe.Stop()
+			mem.Stop()
 		} else {
 			exit(err)
 		}
@@ -53,7 +54,7 @@ func main() {
 		exit(err)
 	}
 
-	err = probe.Memory.WriteTo(csv)
+	err = usage.WriteTo(csv)
 	if err != nil {
 		exit(err)
 	}

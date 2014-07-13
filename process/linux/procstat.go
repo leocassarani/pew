@@ -1,4 +1,4 @@
-package probe
+package linux
 
 import (
 	"io/ioutil"
@@ -12,16 +12,11 @@ const (
 	RssIndex = 23
 )
 
-type ProcessProbe struct {
+type ProcStatMonitor struct {
 	file *os.File
 }
 
-type ProcessStatus struct {
-	// Resident Set Size of the process's memory.
-	RSS int
-}
-
-func NewProcessProbe(proc *os.Process) (*ProcessProbe, error) {
+func NewProcStatMonitor(proc *os.Process) (*ProcStatMonitor, error) {
 	pid := strconv.Itoa(proc.Pid)
 	fpath := path.Join("/", "proc", pid, "stat")
 
@@ -30,12 +25,15 @@ func NewProcessProbe(proc *os.Process) (*ProcessProbe, error) {
 		return nil, err
 	}
 
-	return &ProcessProbe{
-		file: file,
-	}, nil
+	return &ProcStatMonitor{file: file}, nil
 }
 
-func (p *ProcessProbe) Sample() (stat ProcessStatus, err error) {
+type ProcStat struct {
+	// Resident Set Size of the process's memory.
+	RSS int
+}
+
+func (p *ProcStatMonitor) Sample() (stat ProcStat, err error) {
 	_, err = p.file.Seek(0, 0)
 	if err != nil {
 		return stat, err
@@ -56,6 +54,6 @@ func (p *ProcessProbe) Sample() (stat ProcessStatus, err error) {
 	return stat, err
 }
 
-func (p *ProcessProbe) Close() {
+func (p *ProcStatMonitor) Close() {
 	p.file.Close()
 }
