@@ -17,13 +17,15 @@ func TestProcStatParsing(t *testing.T) {
 	statFile := makeStatFile(t, []byte(statFixture))
 	defer rmStatFile(statFile)
 
-	monitor := ProcStatMonitor{file: statFile}
+	monitor := ProcStatMonitor{file: statFile, pagesize: 4096}
 	stat, err := monitor.Sample()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	expected := ProcStat{RSS: 51579}
+	expected := ProcStat{
+		RSS: 211267584, // 51579 * 4096
+	}
 	if stat != expected {
 		t.Fatalf("unexpected ProcStat values: %v", stat)
 	}

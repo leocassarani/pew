@@ -14,6 +14,7 @@ const (
 
 type ProcStatMonitor struct {
 	file *os.File
+	pagesize int
 }
 
 func NewProcStatMonitor(proc *os.Process) (*ProcStatMonitor, error) {
@@ -25,7 +26,10 @@ func NewProcStatMonitor(proc *os.Process) (*ProcStatMonitor, error) {
 		return nil, err
 	}
 
-	return &ProcStatMonitor{file: file}, nil
+	return &ProcStatMonitor{
+		file: file,
+		pagesize: os.Getpagesize(),
+	}, nil
 }
 
 type ProcStat struct {
@@ -49,7 +53,7 @@ func (p *ProcStatMonitor) Sample() (stat ProcStat, err error) {
 	if err != nil {
 		return stat, err
 	}
-	stat.RSS = rss
+	stat.RSS = rss * p.pagesize
 
 	return stat, err
 }
