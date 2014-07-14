@@ -8,6 +8,10 @@ import (
 	"time"
 )
 
+var (
+	CsvHeader = []string{"Timestamp", "Metric", "Value"}
+)
+
 type Usage struct {
 	readings []Reading
 }
@@ -23,6 +27,7 @@ func (u *Usage) Record(metric string, value int) {
 
 func (u *Usage) WriteTo(w io.Writer) error {
 	out := csv.NewWriter(w)
+	out.Write(CsvHeader)
 	for _, reading := range u.readings {
 		out.Write(reading.CSVRow())
 	}
