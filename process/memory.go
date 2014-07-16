@@ -2,26 +2,28 @@ package process
 
 import (
 	"github.com/leocassarani/pew/process/linux"
-	"github.com/leocassarani/pew/profile"
 	"time"
 )
 
+type MemorySample linux.ProcStat
+
 type MemoryProbe struct {
+	Samples chan MemorySample // The channel on which process samples are delivered.
+
 	pstat *linux.ProcStatMonitor
-	usage *profile.Usage
 	stop  chan struct{}
 }
 
-func NewMemoryProbe(runner *Runner, usage *profile.Usage) (*MemoryProbe, error) {
+func NewMemoryProbe(runner *Runner) (*MemoryProbe, error) {
 	pstat, err := linux.NewProcStatMonitor(runner.process())
 	if err != nil {
 		return nil, err
 	}
 
 	return &MemoryProbe{
-		pstat: pstat,
-		usage: usage,
-		stop: make(chan struct{}, 1),
+		Samples: make(chan MemorySample),
+		pstat:   pstat,
+		stop:    make(chan struct{}, 1),
 	}, nil
 }
 
@@ -47,7 +49,7 @@ func (m *MemoryProbe) Sample() error {
 		return err
 	}
 
-	m.usage.Record("RSS", stat.RSS)
+	m.Samples <- MemorySample{RSS: stat.RSS}
 	return nil
 }
 

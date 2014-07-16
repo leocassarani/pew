@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/leocassarani/pew/process"
 	"github.com/leocassarani/pew/profile"
+	"github.com/leocassarani/pew/store"
 	"os"
 	"os/signal"
 	"time"
@@ -14,53 +15,60 @@ func main() {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
+	file, err := store.Create()
+	if err != nil {
+		exit(err)
+	}
+	defer file.Close()
+
+	writer := profile.NewWriter(file)
+
 	command := os.Args[1:]
-
 	runner := process.NewRunner(command)
-	err := runner.Run()
+	err = runner.Start()
 	if err != nil {
 		exit(err)
 	}
+	go runner.Wait()
 
-	usage := &profile.Usage{}
-	mem, err := process.NewMemoryProbe(runner, usage)
+	probe, err := process.NewMemoryProbe(runner)
 	if err != nil {
 		exit(err)
 	}
-	go mem.SampleEvery(1 * time.Second)
-	defer mem.Close()
+	defer probe.Close()
+	go probe.SampleEvery(1 * time.Second)
 
-	select {
-	case err = <-runner.Exit:
-		if err == nil {
-			mem.Stop()
-		} else {
-			exit(err)
+loop:
+	for {
+		select {
+		case sample := <-probe.Samples:
+			err = writer.Write(sample)
+			if err != nil {
+				log(err)
+			}
+		case err = <-runner.Exit:
+			if err != nil {
+				exit(err)
+			}
+			break loop
+		case <-interrupt:
+			// Handle a Ctrl-C by shutting down the child process.
+			err = runner.Stop()
+			if err != nil {
+				exit(err)
+			}
+			break loop
 		}
-	case <-interrupt:
-		// Handle a Ctrl-C by shutting down the child process.
-		err = runner.Stop()
-		if err != nil {
-			exit(err)
-		}
 	}
 
-	if err = os.MkdirAll(".pew", os.ModePerm); err != nil {
-		exit(err)
-	}
-
-	csv, err := os.Create(".pew/memory.csv")
-	if err != nil {
-		exit(err)
-	}
-
-	err = usage.WriteTo(csv)
-	if err != nil {
-		exit(err)
-	}
+	probe.Stop()
 }
 
 func exit(err error) {
-	fmt.Fprintf(os.Stderr, "pew: %v\n", err)
+	log(err)
 	os.Exit(1)
+}
+
+func log(err error) {
+	fmt.Fprintf(os.Stderr, "pew: %v\n", err)
 }

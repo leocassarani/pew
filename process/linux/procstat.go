@@ -13,7 +13,7 @@ const (
 )
 
 type ProcStatMonitor struct {
-	file *os.File
+	file     *os.File
 	pagesize int
 }
 
@@ -27,13 +27,13 @@ func NewProcStatMonitor(proc *os.Process) (*ProcStatMonitor, error) {
 	}
 
 	return &ProcStatMonitor{
-		file: file,
+		file:     file,
 		pagesize: os.Getpagesize(),
 	}, nil
 }
 
 type ProcStat struct {
-	// Resident Set Size of the process's memory.
+	// Resident Set Size of a process.
 	RSS int
 }
 

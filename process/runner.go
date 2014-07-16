@@ -6,7 +6,8 @@ import (
 )
 
 type Runner struct {
-	Exit chan error
+	Exit chan error // The channel on which process exit will be communicated.
+
 	name string
 	args []string
 	cmd  *exec.Cmd
@@ -20,22 +21,15 @@ func NewRunner(command []string) *Runner {
 	}
 }
 
-func (r *Runner) Run() error {
+func (r *Runner) Start() error {
 	r.cmd = exec.Command(r.name, r.args...)
 	r.cmd.Stdout = os.Stdout
 	r.cmd.Stderr = os.Stderr
 
-	err := r.cmd.Start()
-	if err != nil {
-		return err
-	}
-
-	go r.wait()
-
-	return nil
+	return r.cmd.Start()
 }
 
-func (r *Runner) wait() {
+func (r *Runner) Wait() {
 	err := r.cmd.Wait()
 	r.Exit <- err
 }
