@@ -3,21 +3,18 @@ package store
 import (
 	"os"
 	"path"
-	"strconv"
-	"time"
 )
 
-func Create() (*File, error) {
-	pwd, err := os.Getwd()
-	if err != nil {
+type FileStore struct {
+	Root string
+}
+
+func (fs FileStore) Create(cmd string) (*File, error) {
+	if err := fs.makePewDir(); err != nil {
 		return nil, err
 	}
 
-	if err = makePewDir(pwd); err != nil {
-		return nil, err
-	}
-
-	filepath := pewFilePath(pwd)
+	filepath := fs.pewFilePath(cmd)
 	file, err := os.Create(filepath)
 	if err != nil {
 		return nil, err
@@ -26,18 +23,20 @@ func Create() (*File, error) {
 	return &File{fd: file}, nil
 }
 
-func makePewDir(dir string) error {
-	dirpath := path.Join(dir, ".pew")
+func (fs FileStore) makePewDir() error {
+	dirpath := path.Join(fs.Root, ".pew")
 	return os.MkdirAll(dirpath, os.ModePerm)
 }
 
-func pewFilePath(dir string) string {
-	timeStr := strconv.FormatInt(time.Now().Unix(), 10)
-	return path.Join(dir, ".pew", timeStr+".csv")
+func (fs FileStore) pewFilePath(cmd string) string {
+	_, binary := path.Split(cmd)
+	filename := binary + ".csv"
+	return path.Join(fs.Root, ".pew", filename)
 }
 
 type File struct {
-	fd *os.File
+	fd   *os.File
+	path string
 }
 
 func (f *File) Close() error {
@@ -46,4 +45,8 @@ func (f *File) Close() error {
 
 func (f *File) Write(b []byte) (int, error) {
 	return f.fd.Write(b)
+}
+
+func (f *File) Name() string {
+	return f.fd.Name()
 }

@@ -33,7 +33,6 @@ func main() {
 		err := fmt.Errorf("'%s' is not a command. See '%s --help'.", cmd, Binary)
 		exit(err)
 	}
-
 }
 
 func exit(err error) {

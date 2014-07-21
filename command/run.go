@@ -15,7 +15,13 @@ func Run(args []string) error {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
-	file, err := store.Create()
+	pwd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	store := store.FileStore{Root: pwd}
+	file, err := store.Create(args[0])
 	if err != nil {
 		return err
 	}
