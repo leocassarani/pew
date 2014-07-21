@@ -24,6 +24,9 @@ func main() {
 	case "run":
 		err := command.Run(cmdArgs)
 		exit(err)
+	case "attach":
+		err := command.Attach(cmdArgs[0])
+		exit(err)
 	case "help":
 		fallthrough
 	case "--help":
