@@ -6,10 +6,14 @@ import (
 	"os"
 )
 
+const (
+	Binary = "pew"
+)
+
 func main() {
 	args := os.Args
 	if len(args) < 2 {
-		printUsage(args)
+		printUsage()
 		os.Exit(1)
 	}
 
@@ -23,10 +27,10 @@ func main() {
 	case "help":
 		fallthrough
 	case "--help":
-		printUsage(args)
+		printUsage()
 		exit(nil)
 	default:
-		err := fmt.Errorf("'%s' is not a command. See '%s --help'.", cmd, args[0])
+		err := fmt.Errorf("'%s' is not a command. See '%s --help'.", cmd, Binary)
 		exit(err)
 	}
 
@@ -41,9 +45,9 @@ func exit(err error) {
 }
 
 func log(err error) {
-	fmt.Fprintf(os.Stderr, "pew: %v\n", err)
+	fmt.Fprintf(os.Stderr, "%s: %v\n", Binary, err)
 }
 
-func printUsage(args []string) {
-	fmt.Printf("usage: %s <command>\n", args[0])
+func printUsage() {
+	fmt.Printf("usage: %s <command>\n", Binary)
 }
