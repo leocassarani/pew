@@ -24,7 +24,10 @@ func main() {
 		fallthrough
 	case "--help":
 		printUsage(args)
-		os.Exit(0)
+		exit(nil)
+	default:
+		err := fmt.Errorf("'%s' is not a command. See '%s --help'.", cmd, args[0])
+		exit(err)
 	}
 
 }
