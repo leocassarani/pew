@@ -11,3 +11,7 @@ will keep running until the process exits or it receives a SIGINT signal
 Pew will write the memory profile of your process to a timestamped CSV
 file inside the `.pew.` subdirectory of the current working directory
 from where it's launched.
+
+## License
+
+MIT
