@@ -1,7 +1,7 @@
 package linux
 
 import (
-	"io/ioutil"
+	"bufio"
 	"os"
 	"path"
 	"strconv"
@@ -43,6 +43,10 @@ func (p *ProcStatMonitor) Sample() (stat ProcStat, err error) {
 		return stat, err
 	}
 
+	scanner := bufio.NewScanner(p.file)
+	scanner.Split(splitFunc)
+	scanner.Scan()
+
 	text, err := ioutil.ReadAll(p.file)
 	if err != nil {
 		return stat, err
@@ -56,6 +60,11 @@ func (p *ProcStatMonitor) Sample() (stat ProcStat, err error) {
 	stat.RSS = rss * p.pagesize
 
 	return stat, err
+}
+
+// splitFunc is of type bufio.SplitFunc.
+func splitFunc(data []byte, atEOF bool) (advance int, token []byte, err error) {
+
 }
 
 func (p *ProcStatMonitor) Close() {
