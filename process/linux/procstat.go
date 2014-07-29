@@ -8,7 +8,8 @@ import (
 )
 
 const (
-	RssIndex = 23
+	CommIndex = 1
+	RssIndex  = 23
 )
 
 type ProcStatMonitor struct {
@@ -62,6 +63,9 @@ func (p *ProcStatMonitor) Close() {
 }
 
 type ProcStat struct {
+	// The filename of the process's executable.
+	Command string
+
 	// Resident Set Size of a process.
 	RSS int
 
@@ -71,6 +75,10 @@ type ProcStat struct {
 
 func (s *ProcStat) setValueAtIndex(value string, idx int) error {
 	switch idx {
+	case CommIndex:
+		// The command will be wrapped in parentheses, so we remove
+		// the first and last character to extract the bare filename.
+		s.Command = value[1:len(value)-1]
 	case RssIndex:
 		intValue, err := strconv.Atoi(value)
 		if err != nil {

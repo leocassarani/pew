@@ -2,6 +2,7 @@ package command
 
 import (
 	"github.com/leocassarani/pew/process"
+	"github.com/leocassarani/pew/process/linux"
 	"github.com/leocassarani/pew/profile"
 	"github.com/leocassarani/pew/store"
 	"os"
@@ -26,8 +27,21 @@ func Attach(pidStr string) error {
 		return err
 	}
 
+	monitor, err := linux.NewProcStatMonitor(proc)
+	if err != nil {
+		return err
+	}
+
+	// Fetch a sample of the /proc/pid/stat file so we can
+	// extract the filename of the process's executable and
+	// use it to name the output file for its memory profile.
+	stat, err := monitor.Sample()
+	if err != nil {
+		return err
+	}
+
 	store := store.FileStore{Root: pwd}
-	file, err := store.Create(pidStr)
+	file, err := store.Create(stat.Command)
 	if err != nil {
 		return err
 	}
