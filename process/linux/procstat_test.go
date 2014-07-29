@@ -23,11 +23,8 @@ func TestProcStatParsing(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := ProcStat{
-		RSS: 211267584, // 51579 * 4096
-	}
-	if stat != expected {
-		t.Fatalf("unexpected ProcStat values: %v", stat)
+	if stat.RSS != 51579 {
+		t.Fatalf("unexpected RSS value: %v", stat)
 	}
 }
 

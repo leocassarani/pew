@@ -6,7 +6,9 @@ import (
 	"time"
 )
 
-type MemorySample linux.ProcStat
+type MemorySample struct {
+	RSS int
+}
 
 type MemoryProbe struct {
 	Samples chan MemorySample // The channel on which process samples are delivered.
@@ -58,7 +60,7 @@ func (m *MemoryProbe) Sample() error {
 		return err
 	}
 
-	m.Samples <- MemorySample{RSS: stat.RSS}
+	m.Samples <- MemorySample{RSS: stat.RSS * stat.Pagesize}
 	return nil
 }
 

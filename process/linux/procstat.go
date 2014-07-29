@@ -1,11 +1,10 @@
 package linux
 
 import (
-	"io/ioutil"
+	"bufio"
 	"os"
 	"path"
 	"strconv"
-	"strings"
 )
 
 const (
@@ -32,32 +31,52 @@ func NewProcStatMonitor(proc *os.Process) (*ProcStatMonitor, error) {
 	}, nil
 }
 
-type ProcStat struct {
-	// Resident Set Size of a process.
-	RSS int
-}
+func (p *ProcStatMonitor) Sample() (ProcStat, error) {
+	stat := ProcStat{Pagesize: p.pagesize}
 
-func (p *ProcStatMonitor) Sample() (stat ProcStat, err error) {
-	_, err = p.file.Seek(0, 0)
+	_, err := p.file.Seek(0, 0)
 	if err != nil {
 		return stat, err
 	}
 
-	text, err := ioutil.ReadAll(p.file)
-	if err != nil {
-		return stat, err
+	scanner := bufio.NewScanner(p.file)
+	scanner.Split(bufio.ScanWords)
+
+	for i := 0; ; i++ {
+		ok := scanner.Scan()
+		if !ok {
+			break
+		}
+		stat.setValueAtIndex(scanner.Text(), i)
 	}
 
-	fields := strings.Split(string(text), " ")
-	rss, err := strconv.Atoi(fields[RssIndex])
-	if err != nil {
+	if err = scanner.Err(); err != nil {
 		return stat, err
 	}
-	stat.RSS = rss * p.pagesize
 
 	return stat, err
 }
 
 func (p *ProcStatMonitor) Close() {
 	p.file.Close()
+}
+
+type ProcStat struct {
+	// Resident Set Size of a process.
+	RSS int
+
+	// Size of a memory page on the host.
+	Pagesize int
+}
+
+func (s *ProcStat) setValueAtIndex(value string, idx int) error {
+	switch idx {
+	case RssIndex:
+		intValue, err := strconv.Atoi(value)
+		if err != nil {
+			return err
+		}
+		s.RSS = intValue
+	}
+	return nil
 }
