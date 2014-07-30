@@ -8,8 +8,22 @@ import (
 )
 
 const (
-	CommIndex = 1
-	RssIndex  = 23
+	PidIndex   = 0
+	CommIndex  = 1
+	StateIndex = 2
+	RssIndex   = 23
+)
+
+type ProcessState uint8
+
+const (
+	StateUnknown ProcessState = iota
+	StateRunning
+	StateSleeping
+	StateDiskSleeping
+	StateZombie
+	StateTraced
+	StatePaging
 )
 
 type ProcStatMonitor struct {
@@ -63,8 +77,14 @@ func (p *ProcStatMonitor) Close() {
 }
 
 type ProcStat struct {
+	// The process identifier.
+	Pid int
+
 	// The filename of the process's executable.
 	Command string
+
+	// The current state of the process.
+	State ProcessState
 
 	// Resident Set Size of a process.
 	RSS int
@@ -75,10 +95,18 @@ type ProcStat struct {
 
 func (s *ProcStat) setValueAtIndex(value string, idx int) error {
 	switch idx {
+	case PidIndex:
+		intValue, err := strconv.Atoi(value)
+		if err != nil {
+			return err
+		}
+		s.Pid = intValue
 	case CommIndex:
 		// The command will be wrapped in parentheses, so we remove
 		// the first and last character to extract the bare filename.
-		s.Command = value[1:len(value)-1]
+		s.Command = value[1 : len(value)-1]
+	case StateIndex:
+		s.State = parseProcessState(value)
 	case RssIndex:
 		intValue, err := strconv.Atoi(value)
 		if err != nil {
@@ -87,4 +115,23 @@ func (s *ProcStat) setValueAtIndex(value string, idx int) error {
 		s.RSS = intValue
 	}
 	return nil
+}
+
+func parseProcessState(str string) ProcessState {
+	switch str[0] {
+	case 'R':
+		return StateRunning
+	case 'S':
+		return StateSleeping
+	case 'D':
+		return StateDiskSleeping
+	case 'Z':
+		return StateZombie
+	case 'T':
+		return StateTraced
+	case 'W':
+		return StatePaging
+	default:
+		return StateUnknown
+	}
 }
